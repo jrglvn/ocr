@@ -25,15 +25,15 @@ function App() {
   const [pages, setPages] = useState<Array<any>>();
   const [primka, setPrimka] = useState<Primka>();
 
-  useEffect(() => {
-    setResponseArray(JSON.parse(localStorage.getItem("ocr")!));
-  }, []);
-  useEffect(() => {
-    if (responseArray && responseArray.length) {
-      setPages(responseArray[1][0].fullTextAnnotation.pages);
-      // console.log(responseArray);
-    }
-  }, [responseArray]);
+  // useEffect(() => {
+  //   setResponseArray(JSON.parse(localStorage.getItem("ocr")!));
+  // }, []);
+  // useEffect(() => {
+  //   if (responseArray && responseArray.length) {
+  //     setPages(responseArray[1][0].fullTextAnnotation.pages);
+  //     // console.log(responseArray);
+  //   }
+  // }, [responseArray]);
 
   useEffect(() => {
     if (pages) {
