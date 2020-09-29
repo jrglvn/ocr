@@ -48,7 +48,24 @@ function App() {
 
       //create temp object, later add it to useState
       let tempZapisi = katBrojWords.map((word) => {
-        return { katBroj: extractTextFromWord(word) } as IZapis;
+        const word_text = extractTextFromWord(word);
+        let formatted: string;
+        if (word_text.match(/\d{8}/)) {
+          formatted =
+            word_text.substring(0, 3) +
+            "." +
+            word_text.substring(3, 6) +
+            "." +
+            word_text.substring(6);
+        } else {
+          formatted =
+            word_text.substring(0, 2) +
+            "." +
+            word_text.substring(2, 5) +
+            "." +
+            word_text.substring(5);
+        }
+        return { katBroj: formatted } as IZapis;
       });
 
       //need to see if there is extra word that needs to be part of katBroj word
@@ -56,14 +73,20 @@ function App() {
         for (let i = 0; i < katBrojWords.length; i++) {
           //if index is not last, check in space between word and next word,
           if (i !== katBrojWords.length - 1) {
-            const word1bb = getBoundingBox(katBrojWords[i], pages[0]);
-            const word2bb = getBoundingBox(katBrojWords[i + 1], pages[0]);
+            const currentWordBoundingBox = getBoundingBox(
+              katBrojWords[i],
+              pages[0]
+            );
+            const nextWordBoundingBox = getBoundingBox(
+              katBrojWords[i + 1],
+              pages[0]
+            );
 
             const [wordBetween] = getWordsInBoundsWithRegex(/.*/, pages[0], {
-              x1: word1bb.left,
-              x2: word1bb.right,
-              y1: word1bb.bottom,
-              y2: word2bb.top,
+              x1: currentWordBoundingBox.left,
+              x2: currentWordBoundingBox.right,
+              y1: currentWordBoundingBox.bottom,
+              y2: nextWordBoundingBox.top,
             });
             if (wordBetween) {
               tempZapisi[i].katBroj += extractTextFromWord(wordBetween);
@@ -72,8 +95,8 @@ function App() {
             const nazivWords = getWordsInBoundsWithRegex(/.*/, pages[0], {
               x1: 0.15,
               x2: 0.375,
-              y1: word1bb.top,
-              y2: word2bb.top,
+              y1: currentWordBoundingBox.top,
+              y2: nextWordBoundingBox.top,
             });
             if (nazivWords.length) {
               tempZapisi[i].naziv = nazivWords
@@ -83,22 +106,28 @@ function App() {
             }
           } else {
             // if index is last check in space below
-            const word1bb = getBoundingBox(katBrojWords[i], pages[0]);
-            const [wordBetween] = getWordsInBoundsWithRegex(/.*/, pages[0], {
-              x1: word1bb.left,
-              x2: word1bb.right,
-              y1: word1bb.bottom,
-              y2: word1bb.bottom + word1bb.height,
+            const currentWordBoundingBox = getBoundingBox(
+              katBrojWords[i],
+              pages[0]
+            );
+            const [wordBelow] = getWordsInBoundsWithRegex(/.*/, pages[0], {
+              x1: currentWordBoundingBox.left,
+              x2: currentWordBoundingBox.right,
+              y1: currentWordBoundingBox.bottom,
+              y2: currentWordBoundingBox.bottom + currentWordBoundingBox.height,
             });
-            if (wordBetween) {
-              tempZapisi[i].katBroj += extractTextFromWord(wordBetween);
+            if (wordBelow) {
+              const wordBelow_text = extractTextFromWord(wordBelow);
+              if (!wordBelow_text.match(/ukupno/i)) {
+                tempZapisi[i].katBroj += wordBelow_text;
+              }
             }
 
             const nazivWords = getWordsInBoundsWithRegex(/.*/, pages[0], {
               x1: 0.15,
               x2: 0.375,
-              y1: word1bb.top,
-              y2: word1bb.bottom + word1bb.height,
+              y1: currentWordBoundingBox.top,
+              y2: currentWordBoundingBox.bottom + currentWordBoundingBox.height,
             });
             if (nazivWords.length) {
               tempZapisi[i].naziv = nazivWords
