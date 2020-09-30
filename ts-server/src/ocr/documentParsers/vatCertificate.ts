@@ -77,7 +77,7 @@ export const parseVatCertificate = (pages: Array<IPage>): IVat | any => {
   // find block that intersects with averageYof... and x=.5 (center of page)
   let intersectingBlock: any;
   const yAverage = (topOfBox + bottomOfBox) / 2;
-  firstPage.pageData.forEach((block, index) => {
+  firstPage.pageData.blocks.forEach((block, index) => {
     const left =
       (block.boundingBox.normalizedVertices[0].x +
         block.boundingBox.normalizedVertices[3].x) /
