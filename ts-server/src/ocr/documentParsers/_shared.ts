@@ -1,3 +1,5 @@
+import { IPage } from "..";
+
 export const extractAndFormatDate = (data: string): string => {
   let result = "";
 
@@ -29,7 +31,7 @@ export const extractVatNumber = (data: string): string => {
 
 export const getBoundingBox = (
   element: any,
-  page: any
+  page: IPage
 ): {
   top;
   right;
@@ -57,7 +59,7 @@ export const getBoundingBox = (
 
   const factor = element.boundingBox.normalizedVertices.length
     ? { width: 1, height: 1 }
-    : { width: page.width, height: page.height };
+    : { width: page.pageData.width, height: page.pageData.height };
 
   result.top = Math.min(vertices[0].y, vertices[1].y) / factor.height;
   result.right = Math.max(vertices[1].x, vertices[2].x) / factor.width;
@@ -73,27 +75,25 @@ export const getBoundingBox = (
 };
 
 export const findParagrapshContainingText = (
-  pages: any,
+  page: IPage,
   regex: RegExp
 ): Array<{ result: string; paragraph: any; page: any }> => {
   const paragraphObjects: Array<{
     result: string;
     paragraph: any;
-    page: any;
+    page: IPage;
   }> = [];
 
-  pages.forEach((page) => {
-    page.blocks.forEach((block) => {
-      block.paragraphs.forEach((paragraph) => {
-        let paragraph_text = "";
-        paragraph.words.forEach((word) => {
-          paragraph_text = paragraph_text + " " + extractTextFromWord(word);
-        });
-        const regexResult = paragraph_text.match(regex);
-        if (regexResult && regexResult[0]) {
-          paragraphObjects.push({ result: regexResult[0], paragraph, page });
-        }
+  page.pageData.blocks.forEach((block) => {
+    block.paragraphs.forEach((paragraph) => {
+      let paragraph_text = "";
+      paragraph.words.forEach((word) => {
+        paragraph_text = paragraph_text + " " + extractTextFromWord(word);
       });
+      const regexResult = paragraph_text.match(regex);
+      if (regexResult && regexResult[0]) {
+        paragraphObjects.push({ result: regexResult[0], paragraph, page });
+      }
     });
   });
 
@@ -101,21 +101,19 @@ export const findParagrapshContainingText = (
 };
 
 export const findWordsContainingText = (
-  pages: any,
+  page: IPage,
   regex: RegExp
-): Array<{ result: string; word: any; page: any }> => {
+): Array<{ result: string; word: any }> => {
   const wordObjects: Array<any> = [];
 
-  pages.forEach((page) => {
-    page.blocks.forEach((block) => {
-      block.paragraphs.forEach((paragraph) => {
-        paragraph.words.forEach((word) => {
-          const word_text = extractTextFromWord(word);
-          const regexResult = word_text.match(regex);
-          if (regexResult && regexResult[0]) {
-            wordObjects.push({ result: regexResult[0], word, page });
-          }
-        });
+  page.pageData.blocks.forEach((block) => {
+    block.paragraphs.forEach((paragraph) => {
+      paragraph.words.forEach((word) => {
+        const word_text = extractTextFromWord(word);
+        const regexResult = word_text.match(regex);
+        if (regexResult && regexResult[0]) {
+          wordObjects.push({ result: regexResult[0], word });
+        }
       });
     });
   });
@@ -130,12 +128,12 @@ export const extractTextFromWord = (word) => {
 
 export const findWordsInBounds = (
   source: any,
-  page: any,
+  page: IPage,
   { x1, x2, offsetY1, offsetY2 }: { x1; x2; offsetY1; offsetY2: number }
 ): Array<any> => {
   const sourceWordBox = getBoundingBox(source, page);
   const wordsInBound: Array<any> = [];
-  page.blocks.forEach((block) => {
+  page.pageData.blocks.forEach((block) => {
     block.paragraphs.forEach((paragraph) => {
       const vertices = paragraph.boundingBox.normalizedVertices.length
         ? paragraph.boundingBox.normalizedVertices
@@ -162,7 +160,7 @@ export const findWordsInBounds = (
 };
 
 export const getOffsetWords = (
-  pages: any,
+  page: IPage,
   regex: RegExp,
   indexOfElement: number,
   {
@@ -172,10 +170,10 @@ export const getOffsetWords = (
     offsetY2 = 0,
   }: { x1: number; x2: number; offsetY1?: number; offsetY2?: number }
 ) => {
-  const foundWords = findWordsContainingText(pages, regex);
+  const foundWords = findWordsContainingText(page, regex);
   const wordAtIndex = foundWords[indexOfElement];
   if (wordAtIndex) {
-    const foundWords = findWordsInBounds(wordAtIndex.word, wordAtIndex.page, {
+    const foundWords = findWordsInBounds(wordAtIndex.word, page, {
       x1,
       x2,
       offsetY1,

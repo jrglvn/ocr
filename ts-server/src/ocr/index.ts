@@ -34,12 +34,10 @@ export async function parseDocument(
     case "image/tiff":
       const pdfResult = await parsePdf(file);
       return [dispatch(pdfResult, kind), pdfResult];
-      break;
     case "image/jpeg":
     case "image/png":
       const imageResult = await parseImage(file);
       return [dispatch(imageResult, kind), imageResult];
-      break;
     default:
       return { error: "invalid file type" };
   }
@@ -70,23 +68,32 @@ export async function parseImage(file) {
   return result;
 }
 
+export interface IPage {
+  pageData: any;
+  textArray: Array<string>;
+}
 export const dispatch = (
-  result: any,
+  result: Array<any>,
   kind: TKindOfDocument
-): IEstablishment | ITrade | IVat | ICoc | IKyc => {
-  let pages = result[0].fullTextAnnotation.pages;
-  const textArray = result[0].fullTextAnnotation.text.split(/\r?\n/);
+): IEstablishment | ITrade | IVat | ICoc | IKyc | any => {
+  const pages: Array<IPage> = [];
+  result.forEach((result) =>
+    pages.push({
+      pageData: result.fullTextAnnotation.pages[0],
+      textArray: result.fullTextAnnotation.text.split(/\r?\n/),
+    })
+  );
 
   switch (kind) {
     case "TRADE_LICENSE":
-      return parseTradeLicense(textArray);
+      return parseTradeLicense(pages);
     case "ESTABLISHMENT_ID":
-      return parseEstablishmentId(textArray);
+      return parseEstablishmentId(pages);
     case "VAT_CERTIFICATE":
-      return parseVatCertificate(textArray, pages);
+      return parseVatCertificate(pages);
     case "COC":
-      return parseCoc(textArray, pages);
+      return parseCoc(pages);
     case "KYC":
-      return parseKyc(textArray, pages);
+      return parseKyc(pages);
   }
 };

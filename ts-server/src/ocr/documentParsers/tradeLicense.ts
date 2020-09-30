@@ -1,4 +1,5 @@
 import { extractAndFormatDate } from "./_shared";
+import { IPage } from "../index";
 
 export interface ITrade {
   is_valid: boolean;
@@ -7,7 +8,7 @@ export interface ITrade {
   expiry_date: string;
 }
 
-export const parseTradeLicense = (data: Array<string>): ITrade | any => {
+export const parseTradeLicense = (pages: Array<IPage>): ITrade | any => {
   let returnObject = {
     is_valid: false,
     license_number: "",
@@ -15,9 +16,11 @@ export const parseTradeLicense = (data: Array<string>): ITrade | any => {
     expiry_date: "",
   } as ITrade;
 
+  const firstPage = pages[0];
+
   //# CHECK IF DOCUMENT IS VALID
   (function () {
-    data.forEach((line, index) => {
+    firstPage.textArray.forEach((line, index) => {
       const regexResult = line.match(/(commercial|professional)\s+license/i);
       if (regexResult && regexResult[0] && index < 15) {
         returnObject.is_valid = true;
@@ -29,7 +32,7 @@ export const parseTradeLicense = (data: Array<string>): ITrade | any => {
 
   const licenseRegex = /^\d{5,6}$/;
   for (let i = 0; i < 10; i++) {
-    const temp = data[i].match(licenseRegex);
+    const temp = firstPage.textArray[i].match(licenseRegex);
     if (temp && temp[0]) {
       returnObject.license_number = temp[0];
       break;
@@ -37,17 +40,17 @@ export const parseTradeLicense = (data: Array<string>): ITrade | any => {
   }
 
   const nameRegex = /^.*Name$/i;
-  for (let i = 0; i < data.length; i++) {
-    const temp = data[i].match(nameRegex);
+  for (let i = 0; i < firstPage.textArray.length; i++) {
+    const temp = firstPage.textArray[i].match(nameRegex);
     if (temp && temp[0]) {
-      returnObject.company_name = data[i + 1];
+      returnObject.company_name = firstPage.textArray[i + 1];
       break;
     }
   }
 
   // #2 get efective registration date, it's usually first occuring date & located in first ~20 entries
-  for (let i = 0; i < data.length; i++) {
-    const result = extractAndFormatDate(data[i]);
+  for (let i = 0; i < firstPage.textArray.length; i++) {
+    const result = extractAndFormatDate(firstPage.textArray[i]);
     if (result) {
       returnObject.expiry_date = result;
       break;

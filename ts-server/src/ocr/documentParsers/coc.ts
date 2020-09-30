@@ -1,5 +1,5 @@
 import { extractAndFormatDate, extractVatNumber } from "./_shared";
-
+import { IPage } from "../index";
 export interface ICoc {
   policy_number: string;
   company_name: string;
@@ -7,7 +7,7 @@ export interface ICoc {
   expiry_date: string;
 }
 
-export const parseCoc = (data: Array<string>, rawResult: any): ICoc | any => {
+export const parseCoc = (pages: Array<IPage>): ICoc | any => {
   let returnObject = {
     policy_number: "",
     company_name: "",
