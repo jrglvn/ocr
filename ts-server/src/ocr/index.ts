@@ -16,63 +16,77 @@ export type TKindOfDocument =
   | "COC"
   | "KYC";
 
-export async function parsePdf(
+export async function parseDocument(
   file: {
     data: any;
-    mimetype: "application/pdf" | "image/tiff" | "image/gif";
+    mimetype:
+      | "application/pdf"
+      | "image/tiff"
+      | "image/gif"
+      | "image/jpeg"
+      | "image/png";
   },
   kind: TKindOfDocument
 ) {
-  const { ImageAnnotatorClient } = require("@google-cloud/vision").v1;
-  const client = new ImageAnnotatorClient();
-
-  async function batchAnnotateFiles() {
-    const inputConfig = {
-      mimeType: file.mimetype,
-      content: file.data,
-    };
-    const features = [{ type: "DOCUMENT_TEXT_DETECTION" }];
-    const fileRequest = {
-      inputConfig: inputConfig,
-      features: features,
-    };
-    const request = {
-      requests: [fileRequest],
-    };
-    const [result] = await client.batchAnnotateFiles(request);
-    return result.responses[0].responses;
+  switch (file.mimetype) {
+    case "application/pdf":
+    case "image/gif":
+    case "image/tiff":
+      const pdfResult = await parsePdf(file);
+      return [dispatch(pdfResult, kind), pdfResult];
+      break;
+    case "image/jpeg":
+    case "image/png":
+      const imageResult = await parseImage(file);
+      return [dispatch(imageResult, kind), imageResult];
+      break;
+    default:
+      return { error: "invalid file type" };
   }
-
-  let result = await batchAnnotateFiles();
-  // let pages = result[0].fullTextAnnotation.pages;
-
-  // const textToArray = result[0].fullTextAnnotation.text.split(/\r?\n/);
-  return result;
-  // return [dispatch(kind, textToArray, pages), result];
 }
 
-export async function parseImage(file, kind: TKindOfDocument) {
-  const vision = require("@google-cloud/vision");
-  const client = new vision.ImageAnnotatorClient();
-  const [result] = await client.textDetection(file.data);
+export async function parsePdf(file) {
+  const { ImageAnnotatorClient } = require("@google-cloud/vision").v1;
+  const client = new ImageAnnotatorClient();
+  const request = {
+    requests: [
+      {
+        inputConfig: {
+          mimeType: file.mimetype,
+          content: file.data,
+        },
+        features: [{ type: "DOCUMENT_TEXT_DETECTION" }],
+      },
+    ],
+  };
+  const [result] = await client.batchAnnotateFiles(request);
+  return result.responses[0].responses;
+}
+
+export async function parseImage(file) {
+  const { ImageAnnotatorClient } = require("@google-cloud/vision");
+  const client = new ImageAnnotatorClient();
+  const result = await client.textDetection(file.data);
   return result;
 }
 
 export const dispatch = (
-  kind: TKindOfDocument,
-  data: Array<string>,
-  pages: any
+  result: any,
+  kind: TKindOfDocument
 ): IEstablishment | ITrade | IVat | ICoc | IKyc => {
+  let pages = result[0].fullTextAnnotation.pages;
+  const textArray = result[0].fullTextAnnotation.text.split(/\r?\n/);
+
   switch (kind) {
     case "TRADE_LICENSE":
-      return parseTradeLicense(data);
+      return parseTradeLicense(textArray);
     case "ESTABLISHMENT_ID":
-      return parseEstablishmentId(data);
+      return parseEstablishmentId(textArray);
     case "VAT_CERTIFICATE":
-      return parseVatCertificate(data, pages);
+      return parseVatCertificate(textArray, pages);
     case "COC":
-      return parseCoc(data, pages);
+      return parseCoc(textArray, pages);
     case "KYC":
-      return parseKyc(data, pages);
+      return parseKyc(textArray, pages);
   }
 };
