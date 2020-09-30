@@ -141,12 +141,12 @@ export const findWordsInBounds = (
         ? paragraph.boundingBox.normalizedVertices
         : paragraph.boundingBox.vertices;
 
-      const kFactor =
+      const slope =
         (vertices[1].y - vertices[0].y) / (vertices[1].x - vertices[0].x);
 
       paragraph.words.forEach((word) => {
         const wordBox = getBoundingBox(word, page);
-        const yOffset = (wordBox.avgX - sourceWordBox.avgX) * kFactor;
+        const yOffset = (wordBox.avgX - sourceWordBox.avgX) * slope;
         if (
           wordBox.avgX > x1 &&
           wordBox.avgX < x2 &&
