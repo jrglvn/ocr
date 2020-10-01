@@ -10,7 +10,7 @@ import { ICoc, parseCoc } from "./documentParsers/coc";
 import { IKyc, parseKyc } from "./documentParsers/kyc";
 
 export type TKindOfDocument =
-  | "TRADE_LICENSE"
+  | "TRADE_LICENCE"
   | "VAT_CERTIFICATE"
   | "ESTABLISHMENT_ID"
   | "COC"
@@ -28,16 +28,17 @@ export async function parseDocument(
   },
   kind: TKindOfDocument
 ) {
+  let result;
   switch (file.mimetype) {
     case "application/pdf":
     case "image/gif":
     case "image/tiff":
-      const pdfResult = await parsePdf(file);
-      return [dispatch(pdfResult, kind), pdfResult];
+      result = await parsePdf(file);
+      return [dispatch(result, kind), result];
     case "image/jpeg":
     case "image/png":
-      const imageResult = await parseImage(file);
-      return [dispatch(imageResult, kind), imageResult];
+      result = await parseImage(file);
+      return [dispatch(result, kind), result];
     default:
       return { error: "invalid file type" };
   }
@@ -58,24 +59,22 @@ export async function parsePdf(file) {
     ],
   };
   const [result] = await client.batchAnnotateFiles(request);
-  return result.responses[0].responses;
+
+  const pages: Array<IPage> = [];
+  result.responses[0].responses.forEach((result) =>
+    pages.push({
+      pageData: result.fullTextAnnotation.pages[0],
+      textArray: result.fullTextAnnotation.text.split(/\r?\n/),
+    })
+  );
+
+  return pages;
 }
 
 export async function parseImage(file) {
   const { ImageAnnotatorClient } = require("@google-cloud/vision");
   const client = new ImageAnnotatorClient();
   const result = await client.textDetection(file.data);
-  return result;
-}
-
-export interface IPage {
-  pageData: any;
-  textArray: Array<string>;
-}
-export const dispatch = (
-  result: Array<any>,
-  kind: TKindOfDocument
-): IEstablishment | ITrade | IVat | ICoc | IKyc | any => {
   const pages: Array<IPage> = [];
   result.forEach((result) =>
     pages.push({
@@ -83,9 +82,19 @@ export const dispatch = (
       textArray: result.fullTextAnnotation.text.split(/\r?\n/),
     })
   );
+  return pages;
+}
 
+export interface IPage {
+  pageData: any;
+  textArray: Array<string>;
+}
+export const dispatch = (
+  pages: Array<IPage>,
+  kind: TKindOfDocument
+): IEstablishment | ITrade | IVat | ICoc | IKyc | any => {
   switch (kind) {
-    case "TRADE_LICENSE":
+    case "TRADE_LICENCE":
       return parseTradeLicense(pages);
     case "ESTABLISHMENT_ID":
       return parseEstablishmentId(pages);

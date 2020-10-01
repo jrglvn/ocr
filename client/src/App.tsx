@@ -1,16 +1,24 @@
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import styled from "styled-components";
-import { workerData } from "worker_threads";
+
+export interface IPage {
+  pageData: any;
+  text: string;
+}
 
 function App() {
   const inputFile = useRef<any>(null);
   const [responseArray, setResponseArray] = useState<any>();
-  const [page, setPages] = useState<Array<any>>();
+  const [pages, setPages] = useState<Array<any>>();
+
+  useEffect(() => {
+    setResponseArray(JSON.parse(localStorage.getItem("ocr")!));
+  }, []);
 
   useEffect(() => {
     if (responseArray && responseArray.length) {
-      setPages(responseArray[1][0].fullTextAnnotation.pages[0]);
+      setPages(responseArray[1]);
       // console.log(responseArray);
     }
   }, [responseArray]);
@@ -26,7 +34,7 @@ function App() {
           const formData = new FormData();
           formData.append("ocrFile", inputFile.current.files[0]);
           const response = await axios({
-            url: `http://localhost:3001/upload`,
+            url: `http://localhost:3009/upload`,
             method: "POST",
             data: formData,
             headers: {
@@ -38,12 +46,11 @@ function App() {
         }}
       />
       <button onClick={() => inputFile.current.click()}>select file</button>
-
+      {pages?.length &&
+        pages?.map((page, index) => <DataToPage key={index} page={page} />)}
       <pre>
         {responseArray?.length && JSON.stringify(responseArray[0], null, 2)}
       </pre>
-      {/* 
-      <DataToPage page={page} /> */}
     </StyledApp>
   );
 }
@@ -58,12 +65,14 @@ type TElement = {
   text?: string;
 };
 
-const DataToPage = ({ page }) => {
+const DataToPage = (props) => {
   const [words, setWords] = useState<Array<TElement>>([]);
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const [context, setContext] = React.useState<CanvasRenderingContext2D | null>(
     null
   );
+
+  const page = props.page.pageData;
 
   useEffect(() => {
     page.blocks.forEach((block, index) => {
@@ -98,6 +107,9 @@ const DataToPage = ({ page }) => {
       page.blocks.forEach((block) => {
         block.paragraphs.forEach((paragraph) => {
           const vertices = paragraph.boundingBox.normalizedVertices;
+          let slope =
+            (vertices[1].y - vertices[0].y + vertices[2].y - vertices[3].y) /
+            (vertices[1].x - vertices[0].x + vertices[2].x - vertices[3].x);
           context.translate(0.5, 0.5);
           context.beginPath();
           context.lineWidth = 1;
@@ -125,7 +137,7 @@ const DataToPage = ({ page }) => {
           context.stroke();
           context.translate(-0.5, -0.5);
           paragraph.words.forEach((word) => {
-            if (extractTextFromWord(word).match(/^\d{13}/)) {
+            if (extractTextFromWord(word).match(/.*/)) {
               const vertices = word.boundingBox.normalizedVertices;
               context.translate(0.5, 0.5);
               context.beginPath();
@@ -153,42 +165,36 @@ const DataToPage = ({ page }) => {
               );
               context.stroke();
 
-              let slope =
-                (vertices[1].y -
-                  vertices[0].y +
-                  vertices[2].y -
-                  vertices[3].y) /
-                (vertices[1].x - vertices[0].x + vertices[2].x - vertices[3].x);
-              context.beginPath();
+              // context.beginPath();
 
-              context.moveTo(
-                Math.round(
-                  ((vertices[0].x +
-                    vertices[1].x +
-                    vertices[2].x +
-                    vertices[3].x) /
-                    4) *
-                    page.width
-                ),
-                Math.round(
-                  ((vertices[0].y +
-                    vertices[1].y +
-                    vertices[2].y +
-                    vertices[3].y) /
-                    4) *
-                    page.height
-                )
-              );
-              context.lineTo(
-                page.width,
-                Math.round(
-                  ((vertices[0].y + vertices[3].y) / 2 +
-                    (1 - (vertices[0].x + vertices[3].x) / 2) * slope) *
-                    page.height
-                )
-              );
-              context.strokeStyle = "blue";
-              context.stroke();
+              // context.moveTo(
+              //   Math.round(
+              //     ((vertices[0].x +
+              //       vertices[1].x +
+              //       vertices[2].x +
+              //       vertices[3].x) /
+              //       4) *
+              //       page.width
+              //   ),
+              //   Math.round(
+              //     ((vertices[0].y +
+              //       vertices[1].y +
+              //       vertices[2].y +
+              //       vertices[3].y) /
+              //       4) *
+              //       page.height
+              //   )
+              // );
+              // context.lineTo(
+              //   page.width,
+              //   Math.round(
+              //     ((vertices[0].y + vertices[3].y) / 2 +
+              //       (1 - (vertices[0].x + vertices[3].x) / 2) * slope) *
+              //       page.height
+              //   )
+              // );
+              // context.strokeStyle = "blue";
+              // context.stroke();
 
               context.translate(-0.5, -0.5);
             }
@@ -236,11 +242,11 @@ const DataToPage = ({ page }) => {
           </div>
         ))}
       </div>
-      <pre>
+      {/* <pre>
         {words?.map((word) => (
           <p>{word.text}</p>
         ))}
-      </pre>
+      </pre> */}
     </>
   );
 };
