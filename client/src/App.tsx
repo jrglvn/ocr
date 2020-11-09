@@ -242,11 +242,11 @@ const DataToPage = (props) => {
           </div>
         ))}
       </div>
-      {/* <pre>
+      <pre>
         {words?.map((word) => (
           <p>{word.text}</p>
         ))}
-      </pre> */}
+      </pre>
     </>
   );
 };

@@ -186,3 +186,41 @@ export const getOffsetWords = (
   }
   return "";
 };
+
+export const getSlopeOfElement = (element) => {
+  const vertices = element.boundingBox.normalizedVertices.length
+    ? element.boundingBox.normalizedVertices
+    : element.boundingBox.vertices;
+
+  const slope =
+    (vertices[1].y - vertices[0].y) / (vertices[1].x - vertices[0].x);
+  return slope;
+};
+
+export const getAdjacentWordsOnSlope = (
+  page: IPage,
+  word: any,
+  slope: number
+) => {
+  const sourcebb = getBoundingBox(word, page);
+
+  const adjacentWords: Array<any> = [];
+
+  page.pageData.blocks.forEach((block) => {
+    block.paragraphs.forEach((paragraph) => {
+      paragraph.words.forEach((word) => {
+        const tempbb = getBoundingBox(word, page);
+        const yOffset = (tempbb.avgX - sourcebb.avgX) * slope;
+
+        if (
+          tempbb.avgX > sourcebb.avgX &&
+          tempbb.top < sourcebb.avgY + yOffset &&
+          tempbb.bottom > sourcebb.avgY + yOffset
+        ) {
+          adjacentWords.push(word);
+        }
+      });
+    });
+  });
+  return adjacentWords;
+};

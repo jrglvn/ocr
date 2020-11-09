@@ -8,13 +8,15 @@ import { ITrade, parseTradeLicense } from "./documentParsers/tradeLicense";
 import { IVat, parseVatCertificate } from "./documentParsers/vatCertificate";
 import { ICoc, parseCoc } from "./documentParsers/coc";
 import { IKyc, parseKyc } from "./documentParsers/kyc";
+import { parseSmeQuotation } from "./documentParsers/smeQuotation";
 
 export type TKindOfDocument =
   | "TRADE_LICENCE"
   | "VAT_CERTIFICATE"
   | "ESTABLISHMENT_ID"
   | "COC"
-  | "KYC";
+  | "KYC"
+  | "SME_QUOTATION";
 
 export async function parseDocument(
   file: {
@@ -44,7 +46,7 @@ export async function parseDocument(
   }
 }
 
-export async function parsePdf(file) {
+async function parsePdf(file) {
   const { ImageAnnotatorClient } = require("@google-cloud/vision").v1;
   const client = new ImageAnnotatorClient();
   const request = {
@@ -71,7 +73,7 @@ export async function parsePdf(file) {
   return pages;
 }
 
-export async function parseImage(file) {
+async function parseImage(file) {
   const { ImageAnnotatorClient } = require("@google-cloud/vision");
   const client = new ImageAnnotatorClient();
   const result = await client.textDetection(file.data);
@@ -104,5 +106,7 @@ export const dispatch = (
       return parseCoc(pages);
     case "KYC":
       return parseKyc(pages);
+    case "SME_QUOTATION":
+      return parseSmeQuotation(pages);
   }
 };
